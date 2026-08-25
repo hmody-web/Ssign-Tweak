@@ -1,18 +1,15 @@
-name: Build Ssign Tweak
+name: Build Ssign Safe Dylib
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: macos-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Theos
         run: |
@@ -20,8 +17,7 @@ jobs:
           echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
 
       - name: Install ldid
-        run: |
-          brew install ldid
+        run: brew install ldid
 
       - name: Install iOS SDKs
         run: |
@@ -29,18 +25,21 @@ jobs:
           mkdir -p "$HOME/theos/sdks"
           cp -R "$HOME/theos-sdks"/*.sdk "$HOME/theos/sdks/"
 
-      - name: Build dylib
+      - name: Build
         run: |
           export THEOS="$HOME/theos"
           make clean
           make FINALPACKAGE=1
 
-      - name: Locate output
+      - name: Collect
         run: |
-          find . -type f -name "SsignTheme.dylib" -print
+          mkdir -p out
+          DYLIB="$(find . -type f -name 'SsignTheme.dylib' | head -n 1)"
+          test -n "$DYLIB"
+          cp "$DYLIB" out/SsignTheme.dylib
+          file out/SsignTheme.dylib
 
-      - name: Upload dylib
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: SsignTheme-dylib
-          path: .theos/obj/**/SsignTheme.dylib
+          name: SsignTheme-safe
+          path: out/SsignTheme.dylib
